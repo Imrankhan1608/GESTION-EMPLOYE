@@ -1,0 +1,125 @@
+/* ======= RESET ======= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ======= BODY ======= */
+body {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  background: url("assests/7bc4e106-29ad-4b28-90aa-8cfc28100ace_rw_1920.png") center center / cover no-repeat;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+}
+
+/* ======= CONTAINER ======= */
+.container {
+  background: rgba(255, 255, 255, 0);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  max-width: 600px;
+  width: 90%;
+  padding: 40px 30px;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ======= TITRES & TEXTES ======= */
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #f1f1f1;
+}
+
+p {
+  margin-bottom: 30px;
+  line-height: 1.6;
+  font-size: 1rem;
+  color: #fff;
+}
+
+strong {
+  color: #ffffff;
+}
+
+/* ======= BOUTONS ======= */
+.actions {
+  margin-bottom: 20px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 30px;
+  margin: 8px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn.primary {
+  background-color: #06283b;
+  color: #ffffff;
+}
+
+.btn.primary:hover {
+  background-color: #0a517e;
+  transform: scale(1.05);
+}
+
+.btn.secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+}
+
+.btn.secondary:hover {
+  background-color: #ffffff;
+  color: #06283b;
+  transform: scale(1.05);
+}
+
+/* ======= FOOTER ======= */
+footer {
+  font-size: 0.9rem;
+  color: #fff;
+  margin-top: 20px;
+}
+a{
+  color: #06283b;
+  text-decoration: none;
+}
+
+
+
+/* ======= RESPONSIVE ======= */
+@media (max-width: 500px) {
+  .container {
+    padding: 25px 20px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    font-size: 0.9rem;
+  }
+}

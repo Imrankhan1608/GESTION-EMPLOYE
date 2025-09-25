@@ -1,0 +1,112 @@
+/* Reset basique */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+     font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  background: url("assests/7bc4e106-29ad-4b28-90aa-8cfc28100ace_rw_1920.png") center center / cover no-repeat;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+    }
+
+    form {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      padding: 30px 40px;
+      width: 400px;
+    
+      animation: fadeIn 1s ease-in-out;
+    }
+    #but{
+        width: 60%;
+        text-align: center;
+        margin-left: 2%;
+    }
+    #check{
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Animation d'apparition */
+    
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2rem;
+      color: #fff;
+    }
+
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    button {
+      width: 90%;
+      padding: 12px;
+      background: #06283b;
+      border: none;
+      border-radius: 10px;
+      color: #f1f1f1;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #0a517e;
+      transform: scale(1.05);
+    }
+
+    .error {
+      background: #e93535;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .form-footer {
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+
+    .form-footer a {
+      color: #ffe600;
+      text-decoration: none;
+    }
+
+    .form-footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media(max-width: 500px){
+      form {
+        width: 90%;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
