@@ -3,10 +3,14 @@ session_start();
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-$error = "";
-$success = "";
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
-// Connexion à la base
+$employe_id = $_SESSION['user_id'];
+$error = "";
+
 try {
     $conn = new PDO("mysql:host=localhost;dbname=PNB_EMP", "root", "");
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -14,262 +18,216 @@ try {
     die("Erreur BD : " . $e->getMessage());
 }
 
-// Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Vérifier le mot de passe de confirmation
-    if (empty($_POST['cpass'])) {
+    $cpass = $_POST['cpass'] ?? '';
+
+    if (empty($cpass)) {
         $error = "Veuillez confirmer avec votre mot de passe.";
     } else {
-        $cpass = $_POST['cpass'];
-        $mail = $_SESSION['mail'] ?? ''; // récupère le mail de la session
+        try {
+            $stmt = $conn->prepare("SELECT pass, matricule, service FROM employes WHERE id = :id");
+            $stmt->execute(['id'=>$employe_id]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Récupérer le mot de passe hashé depuis la BD
-        $stmt = $conn->prepare("SELECT pass FROM employes WHERE mail = :mail");
-        $stmt->execute(['mail' => $mail]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$user) {
+                $error = "Utilisateur non trouvé.";
+            } elseif (!password_verify($cpass, $user['pass'])) {
+                $error = "Mot de passe incorrect.";
+            } else {
+                // Récupérer les champs
+                $service = $_POST['service'] ?? '';
+                $matricule = $_POST['matricule'] ?? '';
+                $sexe = $_POST['sexe'] ?? '';
+                $motif = $_POST['motif'] ?? '';
+                $date_debut = $_POST['date_debut'] ?? '';
+                $date_fin = $_POST['date_fin'] ?? '';
+                $date_reprise = $_POST['date_reprise'] ?? '';
+                $interim = $_POST['interim'] ?? '';
+                $details = $_POST['details'] ?? '';
 
-        if (!$user || !password_verify($cpass, $user['pass'])) {
-            $error = "Mot de passe incorrect.";
-        } else {
-            // Tous les champs du formulaire
-            $direction = $_POST['direction'] ?? '';
-            $service = $_POST['service'] ?? '';
-            $matricule = $_POST['matricule'] ?? '';
-            $sexe = $_POST['sexe'] ?? '';
-            $motif = $_POST['motif'] ?? '';
-            $date_debut = $_POST['date_debut'] ?? '';
-            $date_fin = $_POST['date_fin'] ?? '';
-            $nombre_jours = $_POST['nombre_jours'] ?? '';
-            $date_reprise = $_POST['date_reprise'] ?? '';
-            $interim = $_POST['interim'] ?? '';
-            $autres = $_POST['presi'] ?? '';
-            $mission = $_POST['mission'] ?? '';
-            $cause = $_POST['cause'] ?? '';
-            $transport_aller = $_POST['aller'] ?? '';
-            $transport_retour = $_POST['retour'] ?? '';
+                if ($matricule != $user['matricule'] || $service != $user['service']) {
+                    $error = "Vos informations ne correspondent pas à celles de la base.";
+                } else {
+                    $start = strtotime($date_debut);
+                    $end = strtotime($date_fin);
+                    if ($start === false || $end === false) $error = "Dates invalides.";
+                    elseif ($start > $end) $error = "La date de début doit être avant la date de fin.";
+                    else {
+                        $nombre_jours = ($end - $start)/(60*60*24)+1;
 
-            // Insérer le bordereau dans la table absences
-            $sql = "INSERT INTO absences 
-                (direction, service, matricule, sexe, motif, date_debut, date_fin, nombre_jours, date_reprise, interim, autres, mission, cause, transport_aller, transport_retour, statut) 
-                VALUES 
-                (:direction, :service, :matricule, :sexe, :motif, :date_debut, :date_fin, :nombre_jours, :date_reprise, :interim, :autres, :mission, :cause, :transport_aller, :transport_retour, 'en_attente')";
+                        // Vérifier les dates
+$start = strtotime($date_debut);
+$end = strtotime($date_fin);
 
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([
-                'direction' => $direction,
-                'service' => $service,
-                'matricule' => $matricule,
-                'sexe' => $sexe,
-                'motif' => $motif,
-                'date_debut' => $date_debut,
-                'date_fin' => $date_fin,
-                'nombre_jours' => $nombre_jours,
-                'date_reprise' => $date_reprise,
-                'interim' => $interim,
-                'autres' => $autres,
-                'mission' => $mission,
-                'cause' => $cause,
-                'transport_aller' => $transport_aller,
-                'transport_retour' => $transport_retour
-            ]);
+$minDate = strtotime('1900-01-01');
+$maxDate = strtotime('2100-12-31');
 
-            $success = "Bordereau envoyé avec succès. Statut : en attente.";
+if ($start === false || $end === false) {
+    $error = "Dates invalides.";
+} elseif ($start < $minDate || $end < $minDate || $start > $maxDate || $end > $maxDate) {
+    $error = "Les dates doivent être comprises entre 1900 et 2100.";
+} elseif ($start > $end) {
+    $error = "La date de début doit être avant la date de fin.";
+} else {
+    $nombre_jours = ($end - $start)/(60*60*24) + 1;
+}
+      
+                        // Vérifier absences existantes
+                        $stmt = $conn->prepare("SELECT * FROM absences WHERE employe_id = :id AND ((date_debut <= :date_fin AND date_fin >= :date_debut))");
+                        $stmt->execute([
+                            'id'=>$employe_id,
+                            'date_debut'=>$date_debut,
+                            'date_fin'=>$date_fin
+                        ]);
+                        if($stmt->fetch(PDO::FETCH_ASSOC)){
+                            $error = "Vous avez déjà une absence enregistrée sur ces dates.";
+                        } else {
+                            $sql = "INSERT INTO absences (employe_id, service, matricule, sexe, motif, details, date_debut, date_fin, nombre_jours, date_reprise, interim)
+                                    VALUES (:employe_id, :service, :matricule, :sexe, :motif, :details, :date_debut, :date_fin, :nombre_jours, :date_reprise, :interim)";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->execute([
+                                'employe_id'=>$employe_id,
+                                'service'=>$service,
+                                'matricule'=>$matricule,
+                                'sexe'=>$sexe,
+                                'motif'=>$motif,
+                                'details'=>$details,
+                                'date_debut'=>$date_debut,
+                                'date_fin'=>$date_fin,
+                                'nombre_jours'=>$nombre_jours,
+                                'date_reprise'=>$date_reprise,
+                                'interim'=>$interim
+                            ]);
+
+                            header("Location: dash.php");
+                            exit();
+                        }
+                    }
+                }
+            }
+
+        } catch(PDOException $e){
+            $error = "Erreur BD : ".$e->getMessage();
         }
     }
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bordereau d'Absence - PNB</title>
-  <link rel="stylesheet" href="demande.css">
+<meta charset="UTF-8">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="gambas-mada.png" type="image/png">
+<meta name="theme-color" content="#007bff">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bordereau d'Absence - PNB</title>
+<link rel="stylesheet" href="demande.css">
+<style>
+.error { color: red; margin: 10px 0; }
+.hidden { display: none; }
+</style>
 </head>
+ <script>
+    // pour efa hainw //
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service Worker enregistré'))
+    .catch(err => console.log('Erreur SW:', err));
+}
+
+</script>  
 <body>
-  <header>
+
+<header>
     <h1>GROUPE UNIMA - MADAGASCAR</h1>
     <h3>BORDEREAU D'ABSENCE</h3>
-  </header>
+</header>
 
-  <form method="post" class="absence-form">
-    <!-- Informations générales -->
-    <section class="section-group">
-      <div class="form-group">
-      </div>
+<?php if($error): ?>
+    <p class="error"><?= $error ?></p>
+<?php endif; ?>
 
-      <div class="form-group">
+<form method="post" class="absence-form">
+    <!-- Service et matricule -->
+    <div class="form-group">
         <label for="service">Service :</label>
         <select name="service" id="service" required>
-          <option value="">-- Sélectionnez un service --</option>
-          <option value="armement">Armement</option>
-          <option value="controle qualité">Contrôle Qualité</option>
-          <option value="direction">Direction</option>
-          <option value="finance & comptabilité">Finance & Comptabilité</option>
-          <option value="magasin">Magasin</option>
-          <option value="production">Production</option>
-          <option value="ressource humaine">Ressources Humaines</option>
-          <option value="techniques">Service Techniques</option>
-          <option value="transit">Transit</option>
+            <option value="">-- Sélectionnez un service --</option>
+            <option value="armement">Armement</option>
+            <option value="controle qualité">Contrôle Qualité</option>
+            <option value="direction">Direction</option>
+            <option value="finance & comptabilité">Finance & Comptabilité</option>
+            <option value="magasin">Magasin</option>
+            <option value="production">Production</option>
+            <option value="ressource humaine">Ressources Humaines</option>
+            <option value="techniques">Service Techniques</option>
+            <option value="transit">Transit</option>
         </select>
-      </div>
+    </div>
 
-      <div class="form-group">
+    <div class="form-group">
         <label for="matricule">Matricule :</label>
-        <input type="number" id="matricule" name="matricule" required>
-      </div>
-    </section>
+        <input type="number" name="matricule" id="matricule" required>
+    </div>
 
     <!-- Sexe -->
     <div class="form-inline">
-      <label>Sexe :</label>
-      <label><input type="radio" name="sexe" value="Mr" required> Mr</label>
-      <label><input type="radio" name="sexe" value="Mme"> Mme</label>
+        <label>Sexe :</label>
+        <label><input type="radio" name="sexe" value="Mr" required> Mr</label>
+        <label><input type="radio" name="sexe" value="Mme"> Mme</label>
     </div>
 
-    <!-- Motif d'absence -->
+    <!-- Motif -->
     <div class="form-group">
-      <label for="motif">Motif :</label>
-      <select name="motif" id="motif" onchange="afficherSection()" required>
-        <option value="">-- Sélectionnez un motif --</option>
-        <option value="mission">Mission</option>
-        <option value="repos_normal">Repos Normal</option>
-        <option value="conge_annuel">Congé Annuel</option>
-        <option value="permission_remunere">Permission Rémunérée</option>
-        <option value="permission_nonremunere">Permission Non Rémunérée</option>
-        <option value="formation">Formation</option>
-        <option value="autre">Autre Motif</option>
-      </select>
+        <label for="motif">Motif :</label>
+        <select name="motif" id="motif" required>
+            <option value="">-- Sélectionnez un motif --</option>
+            <option value="mission">Mission</option>
+            <option value="repos normal">Repos Normal</option>
+            <option value="conge annuel">Congé Annuel</option>
+            <option value="permission remunere">Permission Rémunérée</option>
+            <option value="permission nonremunere">Permission Non Rémunérée</option>
+            <option value="formation">Formation</option>
+            <option value="autre">Autre Motif</option>
+        </select>
     </div>
-
-    <!-- Sections dynamiques -->
-    <div id="section-dynamique">
-      <!-- Mission -->
-      <div id="mission" class="hidden">
-        <label for="lieu_mission">Mission à :</label>
-        <input type="text" id="lieu_mission" name="mission">
-
-        <label for="cause_mission">Pour :</label>
-        <input type="text" id="cause_mission" name="cause">
-
-        <div class="form-inline">
-          <label for="transport_aller">Transport aller :</label>
-          <select id="transport_aller" name="aller">
-            <option value="avion">Avion</option>
-            <option value="voiture">Voiture</option>
-          </select>
-
-          <label for="transport_retour">Transport retour :</label>
-          <select id="transport_retour" name="retour">
-            <option value="avion">Avion</option>
-            <option value="voiture">Voiture</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Repos Normal -->
-      <div id="repos_normal" class="hidden">
-        <label for="solde_repos">Solde repos à date :</label>
-        <input type="text" id="solde_repos" name="solde_repos">
-      </div>
-
-      <!-- Congé Annuel -->
-      <div id="conge_annuel" class="hidden">
-        <label for="solde_conge">Solde congé à date :</label>
-        <input type="text" id="solde_conge" name="solde_conge">
-      </div>
-
-      <!-- Permission Rémunérée -->
-      <div id="permission_remunere" class="hidden">
-        <label for="motif_remunere">Motif :</label>
-        <input type="text" id="motif_remunere" name="permission_remunere">
-      </div>
-
-      <!-- Permission Non Rémunérée -->
-      <div id="permission_nonremunere" class="hidden">
-        <label for="motif_nonremunere">Motif :</label>
-        <input type="text" id="motif_nonremunere" name="permission_nonremunere">
-      </div>
-
-      <!-- Formation -->
-      <div id="formation" class="hidden">
-        <label for="lieu_formation">Formation à :</label>
-        <input type="text" id="lieu_formation" name="lieux">
-
-        <label for="titre_formation">Titre :</label>
-        <input type="text" id="titre_formation" name="titre">
-
-        <div class="form-inline">
-          <label for="transport_aller_formation">Transport aller :</label>
-          <select id="transport_aller_formation" name="aller">
-            <option value="avion">Avion</option>
-            <option value="voiture">Voiture</option>
-          </select>
-
-          <label for="transport_retour_formation">Transport retour :</label>
-          <select id="transport_retour_formation" name="retour">
-            <option value="avion">Avion</option>
-            <option value="voiture">Voiture</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Autre Motif -->
-      <div id="autre" class="hidden">
-        <label for="motif_autre">Repos récupération du :</label>
-        <input type="text" id="motif_autre" name="autre">
-      </div>
-    </div>
-
+       <label for="description">Description :</label>
+       <input type="text" name="details" id="description" placeholder="Détaillez le motif" required>
     <!-- Dates et détails -->
-    <div class="form-inline">
-      <div class="form-group">
+    <div class="form-group">
         <label for="date_debut">Date début :</label>
-        <input type="date" id="date_debut" name="date_debut" required>
-      </div>
+        <input type="date" name="date_debut" required>
+    </div>
 
-      <div class="form-group">
+    <div class="form-group">
         <label for="date_fin">Date fin :</label>
-        <input type="date" id="date_fin" name="date_fin" required>
-      </div>
+        <input type="date" name="date_fin" required>
     </div>
 
     <div class="form-group">
-      <label for="nombre_jours">Nombre de jours :</label>
-      <input type="number" id="nombre_jours" name="nombre_jours" required>
+        <label for="nombre_jours">Nombre de jours :</label>
+        <input type="number" name="nombre_jours" required>
     </div>
 
     <div class="form-group">
-      <label for="date_reprise">Date de reprise de travail :</label>
-      <input type="date" id="date_reprise" name="date_reprise" required>
+        <label for="date_reprise">Date de reprise :</label>
+        <input type="date" name="date_reprise" required>
     </div>
 
     <div class="form-group">
-      <label for="presi">Autre à préciser :</label>
-      <input type="text" id="presi" name="presi">
+        <label for="interim">Intérim :</label>
+        <input type="text" name="interim">
     </div>
 
-    <p class="note">
-      <strong>Note :</strong> Pour toute absence de plus de 2 jours (Directeur ou Chef de département), un délégué de pouvoir doit être désigné.
-    </p>
-
+    <!-- Confirmation mot de passe -->
+    <p><strong>Confirmation :</strong> Veuillez entrer votre mot de passe pour valider l'envoi.</p>
     <div class="form-group">
-      <label for="interim">Intérim :</label>
-      <input type="text" id="interim" name="interim" >
+        <input type="password" name="cpass" placeholder="Mot de passe" required>
     </div>
 
-    <a onclick="adver()" id="add">Valider</a>
-    <div id="adver">
-  <!-- Nouvelle phrase -->
-  <p><strong>Confirmation :</strong> Veuillez entrer votre mot de passe pour valider l'envoi de votre bordereau d'absence.</p>
-
-  <input type="password" style="margin:2%;" required name="cpass" placeholder="Mot de passe">
-  <button type="submit" class="btn-submitone">J'accepte</button>
-</div>
-  </form>
-
-  <script src="index.js"></script>
+    <button type="submit">J'accepte et envoie</button>
+</form>
+<script src="index.js"></script>
 </body>
 </html>

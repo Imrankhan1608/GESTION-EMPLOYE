@@ -67,6 +67,9 @@ if (isset($_POST['submit'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="manifest" href="/manifest.json">
+<link rel="icon" href="gambas-mada.png" type="image/png">
+<meta name="theme-color" content="#007bff">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="signin.css">
     <title>INSCRIPTION</title>
@@ -122,6 +125,13 @@ if (isset($_POST['submit'])) {
   </form>
 
   <script>
+
+    // pour l'icone copain kkk//
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service Worker enregistré'))
+    .catch(err => console.log('Erreur SW:', err));
+}
     const pass = document.getElementById('pass');
     const cpass = document.getElementById('cpass');
     const submitBtn = document.getElementById('submitBtn');

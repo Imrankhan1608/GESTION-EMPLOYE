@@ -1,0 +1,15 @@
+{
+  "name": "GESTION ABSENCE",
+  "short_name": "ABSENCE_PNB",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "gambas-mada.png",
+      "sizes": "612x612",
+      "type": "image/png"
+    }
+  ]
+}

@@ -94,11 +94,23 @@ if (isset($_POST['login'])) {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <link rel="manifest" href="/manifest.json">
+<link rel="icon" href="gambas-mada.png" type="image/png">
+<meta name="theme-color" content="#007bff">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="login.css">
   <title>Connexion</title>
 
 </head>
+<script>
+    // pour efa hainw //
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service Worker enregistré'))
+    .catch(err => console.log('Erreur SW:', err));
+}
+
+</script>
 <body>
   <form method="POST" action="">
     <h1>Connexion</h1>
